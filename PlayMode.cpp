@@ -52,6 +52,16 @@ Load<void> ps(LoadTagDefault, []() {
     tile_stream.open(data_path("../assets/tiles.asset"));
     return;
 });
+//GPT Debug
+void PlayMode::reset_game() {
+    balls.clear();
+    explosions.clear();
+    has_ball = false;
+    missed_balls = 0;
+    game_over = false;
+    ppu.background_color = glm::u8vec4(100, 100, 200, 255);
+    player_pos = glm::vec2(144.0f, 120.0f);
+}
 
 PlayMode::PlayMode() {
     std::vector<PPU466::Palette> palettes;
@@ -139,15 +149,21 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			return true;
 		}
 		else if (evt.type == SDL_EVENT_KEY_DOWN) {
-			if (evt.key.key == SDLK_SPACE) {
-				if (has_ball) {
-					held_ball.pos = player_pos + glm::vec2(0, 8.0f); 
-					held_ball.fall_speed = -120.0f; 
-					balls.push_back(held_ball);
-					has_ball = false;
-				}
-				return true;
-			}
+            if (evt.key.key == SDLK_SPACE) {
+            if (has_ball) {
+            held_ball.pos = player_pos + glm::vec2(0, 8.0f); 
+            held_ball.fall_speed = -120.0f; 
+            balls.push_back(held_ball);
+            has_ball = false;
+        }
+            return true;
+    // Restart
+    }   else if (evt.key.key == SDLK_R) {  
+        if (game_over) {
+            reset_game();
+        }
+        return true;
+    }
 }
 
 	}
@@ -172,6 +188,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 
 
 void PlayMode::update(float elapsed) {
+    if (game_over) return;
 
 	// Spaceship speed
     constexpr float PlayerSpeed = 80.0f; 
@@ -236,9 +253,19 @@ void PlayMode::update(float elapsed) {
         b.pos.y -= b.fall_speed * elapsed;
     }
 	// Remove Ball (GPT Fixed)
-	while (!balls.empty() && balls.front().pos.y < 0 ) {
-    balls.pop_front();
-	}
+	for (auto it = balls.begin(); it != balls.end();) {
+    if (it->pos.y < 0.0f) {
+        if (it->fall_speed > 0) {   // only count falling balls
+            missed_balls++;
+            if (missed_balls >= 7) {
+                game_over = true;
+            }
+        }
+        it = balls.erase(it);
+    } else {
+        ++it;
+    }
+}
 	// Check explosion
 	for (auto shot_it = balls.begin(); shot_it != balls.end();) {
     if (shot_it->fall_speed < 0) { 
@@ -381,7 +408,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 
 	// Explosion Drawing
-	int expl_sprite_id = 58;
+	int expl_sprite_id = 50;
 	for (auto &e : explosions) {
 		if (expl_sprite_id >= 64) break;
 		ppu.sprites[expl_sprite_id].x = uint8_t(e.pos.x);
@@ -398,6 +425,9 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		ppu.sprites[expl_sprite_id].attributes = 1;
 		expl_sprite_id++;
 	}
+    if (game_over) {
+    ppu.background_color = glm::u8vec4(200, 0, 0, 255); // red background
+}
 
 
     ppu.draw(drawable_size);

@@ -2,7 +2,7 @@
 
 Author: Alex Ding
 
-Design: Control the spaceship to take comet and send them back to crash each other 
+Design: Control the spaceship to take comet and shoot them back to crash each other 
 
 Screen Shot:
 
@@ -22,7 +22,7 @@ Load into PPU446
 
 How To Play:
 
-WASD to move, Space to shoot 
+WASD to move, Space to shoot, if the game is over, Press R to restart
 
 This game was built with [NEST](NEST.md).
 

@@ -21,6 +21,7 @@ struct PlayMode : Mode {
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
 
+
 	//----- game state -----
 
 	//input tracking:
@@ -28,12 +29,13 @@ struct PlayMode : Mode {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
 	} left, right, down, up;
-
-
-	//player position:
 	//glm::vec2 player_at = glm::vec2(0.0f);
 	
 	float elapsed_sum = 0.0f;
+	//Game Over check
+	int missed_balls = 0;
+	bool game_over = false;
+	void reset_game();
 
 	
 	//----- drawing handled by PPU466 -----
