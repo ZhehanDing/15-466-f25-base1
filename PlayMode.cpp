@@ -217,8 +217,8 @@ void PlayMode::update(float elapsed) {
 		Ball b;
 		b.type = 11+ rand() % 3; 
 		int rand_x = 16 + (rand() % (240 - 16 + 1));
-		b.pos = glm::vec2((float)rand_x, 200.0f);
-		b.fall_speed=30.0f+(rand() % 30);
+		b.pos = glm::vec2((float)rand_x, 230.0f);
+		b.fall_speed=50.0f+(rand() % 30);
 		bool overlap = false;
     	for (auto &other : balls) {
         if (fabs(other.pos.x - b.pos.x) < 8.0f &&
@@ -354,7 +354,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
     ppu.sprites[9].index = 9;
     ppu.sprites[9].attributes =7;
 
-	// Ball Drawing (Still bug)
+	// Ball Drawing (solved)
 	int ball_sprite_id = 10; 
 	for (auto &b : balls) {
 		if (ball_sprite_id >= 64) break; 
@@ -381,20 +381,22 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 	}
 
 	// Explosion Drawing
+	int expl_sprite_id = 58;
 	for (auto &e : explosions) {
-		int expl_sprite_id = 60; // different variable name
+		if (expl_sprite_id >= 64) break;
 		ppu.sprites[expl_sprite_id].x = uint8_t(e.pos.x);
 		ppu.sprites[expl_sprite_id].y = uint8_t(e.pos.y);
 
 		float t = e.timer / e.duration;
 		if (t < 0.33f) {
-			ppu.sprites[expl_sprite_id].index = 20;
+			ppu.sprites[expl_sprite_id].index = 14;
 		} else if (t < 0.66f) {
 			ppu.sprites[expl_sprite_id].index = 21;
 		} else {
 			ppu.sprites[expl_sprite_id].index = 22;
 		}
 		ppu.sprites[expl_sprite_id].attributes = 1;
+		expl_sprite_id++;
 	}
 
 
