@@ -1,8 +1,8 @@
-# (TODO: your game's title)
+# Send Them Back
 
-Author: (TODO: your name)
+Author: Alex Ding
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: Control the spaceship to take comet and send them back to crash each other 
 
 Screen Shot:
 
@@ -10,13 +10,19 @@ Screen Shot:
 
 How Your Asset Pipeline Works:
 
-(TODO: describe the steps in your asset pipeline, from source files to tiles/backgrounds/whatever you upload to the PPU466.)
+Store PNG in Asset file;
+Load PNG to Pixel buffer；
+Make them into 8X8；
+Extract 4 color for each 8X8；
+Each tile gets assigned a palette；
+Push out Tile and Palette file;
+Load into PPU446
 
 (TODO: make sure the source files you drew are included. You can [link](your/file.png) to them to be a bit fancier.)
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+WASD to move, Space to shoot 
 
 This game was built with [NEST](NEST.md).
 
