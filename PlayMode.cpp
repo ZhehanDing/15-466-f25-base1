@@ -25,7 +25,7 @@ struct StreamContainer {
 	std::vector<PPU466::Palette> palettes;
 };
 glm::vec2 player_pos = glm::vec2(144.0f, 120.0f); // 
-
+// Set Ball
 struct Ball {
     glm::vec2 pos;
     glm::vec2 size = glm::vec2(8.0f, 8.0f);
@@ -33,13 +33,20 @@ struct Ball {
 	float fall_speed = 0.0f;
 };
 std::deque<Ball> balls;
+// Set Explosion
+struct Explosion {
+    glm::vec2 pos;
+    float timer = 0.0f;     // how long it has existed
+    float duration = 0.3f;  // how long before disappearing
+};
+std::deque<Explosion> explosions;
+
 // Hold Ball Detect
 Ball held_ball;          
 bool has_ball = false;  
 std::ifstream palette_stream;
 std::ifstream tile_stream;
 
-//
 Load<void> ps(LoadTagDefault, []() {
     palette_stream.open(data_path("../assets/palettes.asset"));
     tile_stream.open(data_path("../assets/tiles.asset"));
@@ -212,7 +219,17 @@ void PlayMode::update(float elapsed) {
 		int rand_x = 16 + (rand() % (240 - 16 + 1));
 		b.pos = glm::vec2((float)rand_x, 200.0f);
 		b.fall_speed=30.0f+(rand() % 30);
-		balls.push_back(b);
+		bool overlap = false;
+    	for (auto &other : balls) {
+        if (fabs(other.pos.x - b.pos.x) < 8.0f &&
+            fabs(other.pos.y - b.pos.y) < 8.0f) {
+            overlap = true;
+            break;
+        }
+    }
+    if (!overlap) {
+        balls.push_back(b);
+    }
 	}
 	// Ball Falling Speed
 	for (auto &b : balls) {
@@ -222,6 +239,45 @@ void PlayMode::update(float elapsed) {
 	while (!balls.empty() && balls.front().pos.y < 0 ) {
     balls.pop_front();
 	}
+	// Check explosion
+	for (auto shot_it = balls.begin(); shot_it != balls.end();) {
+    if (shot_it->fall_speed < 0) { 
+        bool hit = false;
+
+        for (auto fall_it = balls.begin(); fall_it != balls.end();) {
+            if (fall_it->fall_speed > 0) { 
+                if (fabs(shot_it->pos.x - fall_it->pos.x) < 8.0f &&
+                    fabs(shot_it->pos.y - fall_it->pos.y) < 8.0f) {
+                    explosions.push_back({fall_it->pos}); 
+                    fall_it = balls.erase(fall_it);
+                    hit = true;
+                    break; // stop checking more falling balls
+                } else {
+                    ++fall_it;
+                }
+            } else {
+                ++fall_it;
+            }
+        }
+		// Remove ball
+        if (hit) {
+            shot_it = balls.erase(shot_it); 
+        } else {
+            ++shot_it;
+        }
+    } else {
+        ++shot_it;
+    }
+}
+	// Check Explosions
+	for (auto it = explosions.begin(); it != explosions.end();) {
+    it->timer += elapsed;
+    if (it->timer > it->duration) {
+        it = explosions.erase(it);
+    } else {
+        ++it;
+    }
+}
 
     // Eeset downs
     left.downs = right.downs = up.downs = down.downs = 0;
@@ -245,25 +301,8 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
     ppu.sprites[2].x = uint8_t(x);
     ppu.sprites[2].y = uint8_t(y);
-	// Holding Ball
-	if (has_ball) {
-    if (held_ball.type == 11) {
-        ppu.sprites[2].index = 11;
-        ppu.sprites[2].attributes = 1;
-    } else if (held_ball.type == 12) {
-        ppu.sprites[2].index = 12;
-        ppu.sprites[2].attributes = 2;
-    } else if (held_ball.type == 13) {
-        ppu.sprites[2].index = 13;
-        ppu.sprites[2].attributes = 3;
-    }
-} 
-	else {
-    ppu.sprites[2].index = 2;  
+	ppu.sprites[2].index = 2;  
     ppu.sprites[2].attributes = 2;
-	}
-    ppu.sprites[2].index = 2;
-    ppu.sprites[2].attributes = 1;
 
     ppu.sprites[3].x = uint8_t(x + 8);
     ppu.sprites[3].y = uint8_t(y);
@@ -277,8 +316,23 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 
     ppu.sprites[5].x = uint8_t(x);
     ppu.sprites[5].y = uint8_t(y + 8);
-    ppu.sprites[5].index = 5;
+ 	// Holding Ball
+	if (has_ball) {
+    if (held_ball.type == 11) {
+        ppu.sprites[5].index = 11;
+        ppu.sprites[5].attributes = 1;
+    } else if (held_ball.type == 12) {
+        ppu.sprites[5].index = 12;
+        ppu.sprites[5].attributes = 2;
+    } else if (held_ball.type == 13) {
+        ppu.sprites[5].index = 13;
+        ppu.sprites[5].attributes = 3;
+    }
+} 
+	else {
+    ppu.sprites[5].index = 5;  
     ppu.sprites[5].attributes = 5;
+	}
 
     ppu.sprites[6].x = uint8_t(x + 8);
     ppu.sprites[6].y = uint8_t(y + 8);
@@ -301,27 +355,48 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
     ppu.sprites[9].attributes =7;
 
 	// Ball Drawing (Still bug)
-	int sprite_id = 10; 
+	int ball_sprite_id = 10; 
 	for (auto &b : balls) {
-		if (sprite_id >= 64) break; 
-		ppu.sprites[sprite_id].x = uint8_t(b.pos.x);
-		ppu.sprites[sprite_id].y = uint8_t(b.pos.y);
-		if (b.type == 11) { // blue
-			ppu.sprites[sprite_id].index = 11;
-			ppu.sprites[sprite_id].attributes = 1;
-		} else if (b.type == 12) { // red
-			ppu.sprites[sprite_id].index = 12;
-			ppu.sprites[sprite_id].attributes = 2;
-		} else if (b.type == 13) { // yellow
-			ppu.sprites[sprite_id].index = 13;
-			ppu.sprites[sprite_id].attributes = 3;
+		if (ball_sprite_id >= 64) break; 
+		ppu.sprites[ball_sprite_id].x = uint8_t(b.pos.x);
+		ppu.sprites[ball_sprite_id].y = uint8_t(b.pos.y);
+		if (b.type == 11) {
+			ppu.sprites[ball_sprite_id].index = 11;
+			ppu.sprites[ball_sprite_id].attributes = 1;
+		} else if (b.type == 12) {
+			ppu.sprites[ball_sprite_id].index = 12;
+			ppu.sprites[ball_sprite_id].attributes = 2;
+		} else if (b.type == 13) {
+			ppu.sprites[ball_sprite_id].index = 13;
+			ppu.sprites[ball_sprite_id].attributes = 3;
 		}
-		sprite_id++;
+		ball_sprite_id++;
 	}
-	std::cout << "Balls count: " << balls.size() << std::endl;
-		for (auto &b : balls) {
-    	std::cout << "Ball at (" << b.pos.x << ", " << b.pos.y << ") type " << b.type << std::endl;
-}
+	// clear unused
+	for (; ball_sprite_id < 64; ball_sprite_id++) {
+		ppu.sprites[ball_sprite_id].x = 0;
+		ppu.sprites[ball_sprite_id].y = 240;
+		ppu.sprites[ball_sprite_id].index = 0;
+		ppu.sprites[ball_sprite_id].attributes = 0;
+	}
+
+	// Explosion Drawing
+	for (auto &e : explosions) {
+		int expl_sprite_id = 60; // different variable name
+		ppu.sprites[expl_sprite_id].x = uint8_t(e.pos.x);
+		ppu.sprites[expl_sprite_id].y = uint8_t(e.pos.y);
+
+		float t = e.timer / e.duration;
+		if (t < 0.33f) {
+			ppu.sprites[expl_sprite_id].index = 20;
+		} else if (t < 0.66f) {
+			ppu.sprites[expl_sprite_id].index = 21;
+		} else {
+			ppu.sprites[expl_sprite_id].index = 22;
+		}
+		ppu.sprites[expl_sprite_id].attributes = 1;
+	}
+
 
     ppu.draw(drawable_size);
 }
