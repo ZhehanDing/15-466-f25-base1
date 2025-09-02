@@ -61,6 +61,7 @@ void load_assets() {
                     glm::u8vec4 color = data[index];
 
                     // Check if the color already exists in the palette
+					// GPT Help Debug 
                     int colorIndex = -1;
                     for (int c = 0; c < colorCount; c++) {
                         if (color == palette[c]) {
@@ -70,6 +71,7 @@ void load_assets() {
                     }
 
                     // If not found, add the new color to the palette
+					// GPT Help Debug 
                     if (colorIndex == -1) {
                         palette[colorCount] = color;
                         colorIndex = colorCount;
